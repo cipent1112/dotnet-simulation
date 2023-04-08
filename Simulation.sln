@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simulation.PaginationFilters", "Simulation.PaginationFilters\Simulation.PaginationFilters.csproj", "{CCAE341D-1891-4448-9ACB-60093165D4FE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simulation.DatabaseBase", "Simulation.DatabaseBase\Simulation.DatabaseBase.csproj", "{3058BE90-6D0F-4ACD-8AB1-259E32792220}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CCAE341D-1891-4448-9ACB-60093165D4FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CCAE341D-1891-4448-9ACB-60093165D4FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CCAE341D-1891-4448-9ACB-60093165D4FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CCAE341D-1891-4448-9ACB-60093165D4FE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3058BE90-6D0F-4ACD-8AB1-259E32792220}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3058BE90-6D0F-4ACD-8AB1-259E32792220}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3058BE90-6D0F-4ACD-8AB1-259E32792220}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3058BE90-6D0F-4ACD-8AB1-259E32792220}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

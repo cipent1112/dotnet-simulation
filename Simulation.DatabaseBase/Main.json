@@ -1,0 +1,36 @@
+{
+  "AllowedHosts": "*",
+  "AppSetting": {
+    "AppName": "Simulation API Boilerplate v.1.0",
+    "AppUrl": "https://localhost:5001",
+    "AppEnv": "Development",
+    "AppClientSetting": {
+      "AppClientKey": "AppKey",
+      "AppClientSecret": "AppSecret"
+    }
+  },
+  "DatabaseSettings": {
+    "Core": {
+      "Driver": "MSSQL",
+      "AutoMigrate": true,
+      "CollationType": "SQL_Latin1_General_CP1_CI_AS",
+      "InstanceName": "(LocalDB)\\MSSQLLocalDB",
+      "DatabaseName": "SimulationCore",
+      "IntegratedSecurity": true,
+      "TrustServerCertificate": true,
+      "Username": "",
+      "Password": ""
+    },
+    "Location": {
+      "Driver": "MSSQL",
+      "AutoMigrate": true,
+      "CollationType": "SQL_Latin1_General_CP1_CI_AS",
+      "InstanceName": "(LocalDB)\\MSSQLLocalDB",
+      "DatabaseName": "SimulationLocation",
+      "IntegratedSecurity": false,
+      "TrustServerCertificate": true,
+      "Username": "",
+      "Password": ""
+    }
+  }
+}
