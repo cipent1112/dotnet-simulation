@@ -1,0 +1,18 @@
+{
+  "AllowedHosts": "*",
+  "AppSetting": {
+    "AppName": "Media Service",
+    "AppUrl": "https://localhost:5002",
+    "AppEnv": "Development"
+  },
+  "DatabaseSetting": {
+    "AutoMigrate": true,
+    "CollationType": "SQL_Latin1_General_CP1_CI_AS",
+    "InstanceName": "(LocalDB)\\MSSQLLocalDB",
+    "DatabaseName": "MediaService",
+    "IntegratedSecurity": false,
+    "TrustServerCertificate": true,
+    "Username": "",
+    "Password": ""
+  }
+}
