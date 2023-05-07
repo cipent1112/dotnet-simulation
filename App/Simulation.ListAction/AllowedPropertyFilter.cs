@@ -6,14 +6,14 @@ public class AllowedPropertyFilter
     public string ParamKey { get; set; } = null!;
 
     /*
-     * `PropertyName` is property name of the parent class and
-     * When `PropertyName` is null than the `ParamKey` as parent property name.
+     * `RelationName` is property name of the parent class and
+     * When `RelationName` is null than the `ParamKey` as parent property name.
      */
-    public string? PropertyName { get; set; }
+    public string? RelationName { get; set; }
 
     /*
-     * `PropertyChildName` is property name of the child class and
-     * `PropertyChildName` is a reference for filter nested child property when the `PropertyChildName` is not null.
+     * `PropertyName` is property name of the child class and
+     * `PropertyName` is a reference for filter nested child property when the `PropertyName` is not null.
      */
-    public string? ChildPropertyName { get; set; }
+    public string? PropertyName { get; set; }
 }

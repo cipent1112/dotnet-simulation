@@ -1,12 +1,12 @@
+using System.Linq.Dynamic.Core;
 using System.Linq.Expressions;
-using Newtonsoft.Json;
-using Simulation.Shared;
+using Newtonsoft.Json.Linq;
 
 namespace Simulation.ListAction;
 
 public class PagedAction
 {
-    public List<AllowedPropertyFilter>? AllowedPropertyFilters { get; set; }
+    private List<AllowedPropertyFilter>? AllowedPropertyFilters { get; set; }
 
     public PagedAction(List<AllowedPropertyFilter>? allowedPropertyFilters)
     {
@@ -15,9 +15,8 @@ public class PagedAction
 
     public IQueryable<T> ApplyFilters<T>(IQueryable<T> query, List<PropertiesFilter> filterList)
     {
-        var filteredQuery     = query;
-        var parentProperties  = typeof(T).GetProperties();
-        var parentLambdaParam = Expression.Parameter(typeof(T), "x");
+        var filteredQuery    = query;
+        var parentProperties = typeof(T).GetProperties();
 
         Console.WriteLine();
         Console.WriteLine($"{typeof(T).Name} properties:");
@@ -27,43 +26,45 @@ public class PagedAction
         Console.WriteLine("Allowed Property Filters: ");
         AllowedPropertyFilters!.ForEach(_ =>
         {
-            Console.WriteLine($"Param Key\t\t: {_.ParamKey}");
-            Console.WriteLine($"Parent Property Name\t: {_.PropertyName}");
-            Console.WriteLine($"Child Property Name\t: {_.ChildPropertyName}");
+            Console.WriteLine($"\nParam Key\t: {_.ParamKey}");
+            Console.WriteLine($"Relation Name\t: {_.RelationName}");
+            Console.WriteLine($"Property Name\t: {_.PropertyName}");
         });
         Console.WriteLine();
 
+        if (AllowedPropertyFilters == null) return filteredQuery;
+
+        var parentParameter = Expression.Parameter(typeof(T), BuildLambdaParameterName(typeof(T).Name));
         foreach (var filter in filterList)
         {
-            var parentPropName  = filter.Field;
-            var allowedProperty = AllowedPropertyFilters?.FirstOrDefault(_ => _.ParamKey == parentPropName);
-            if (allowedProperty != null)
-            {
-                parentPropName = allowedProperty.ParamKey;
-                if (!string.IsNullOrEmpty(allowedProperty.PropertyName))
-                    parentPropName = allowedProperty.PropertyName;
-            }
+            var allowedProperty = AllowedPropertyFilters.FirstOrDefault(_ => _.ParamKey == filter.Field);
+            if (allowedProperty == null) continue;
 
-            Console.WriteLine("\nFilter:");
-            Console.WriteLine($"Filter prop\t: {parentPropName}");
+            var propertyName = allowedProperty.PropertyName ?? allowedProperty.ParamKey;
+            if (allowedProperty.RelationName != null && allowedProperty.PropertyName != null)
+                propertyName = allowedProperty.RelationName;
+
+            Console.WriteLine("Filter:\n");
+            Console.WriteLine($"Filter prop\t: {filter.Field}");
             Console.WriteLine($"Filter operator\t: {filter.Operator}");
             Console.WriteLine($"Filter value\t: {filter.Value}");
 
-            var prop = parentProperties.FirstOrDefault(e => e.Name.Equals(parentPropName));
+            var prop = parentProperties.FirstOrDefault(e => e.Name.Equals(propertyName));
             if (prop == null) continue;
 
             Console.WriteLine("\nValid parent property:");
             Console.WriteLine($"-> {prop.Name}");
 
             var propType = prop.PropertyType;
+
             if (propType.IsGenericType && propType.GetGenericTypeDefinition() == typeof(ICollection<>))
             {
                 Console.WriteLine($"\nDetect {prop.Name} is ICollection type");
 
-                if (allowedProperty?.ChildPropertyName == null)
+                if (allowedProperty.PropertyName == null)
                     throw new Exception("Please init your property child name.");
 
-                var childPropName   = allowedProperty.ChildPropertyName;
+                var childPropName   = allowedProperty.PropertyName;
                 var childPropValue  = filter.Value;
                 var childPropType   = propType.GetGenericArguments()[0];
                 var childProperties = childPropType.GetProperties();
@@ -71,136 +72,171 @@ public class PagedAction
 
                 if (childProp == null) continue;
 
-                Console.WriteLine("\nValid child property:");
+                Console.WriteLine("\nFound child property:");
                 Console.WriteLine($"Child class name\t: {childPropType.Name}");
                 Console.WriteLine($"Child property name\t: {childPropName}");
 
-                var lambdaParam = Expression.Parameter(typeof(StoreAssignment), "x");
-                var lambdaBody = Expression.Equal(
-                    Expression.Property(lambdaParam, childPropName),
-                    Expression.Constant(childPropValue)
+                var childParameter = Expression.Parameter(childPropType, BuildLambdaParameterName(childPropType.Name));
+                var childProperty  = Expression.Property(childParameter, childPropName);
+                var childConstant  = Expression.Constant(childPropValue);
+
+                var childMethod = filter.Operator switch
+                {
+                    OperatorsFilter.EqualOperator => childPropType.GetMethod("Equals", new[] { childPropType }),
+                    _                             => throw new ArgumentException("Invalid child method.")
+                };
+
+                var childCall = Expression.Call(childProperty, childMethod!, childConstant);
+                var anyExpression = Expression.Call(
+                    typeof(Enumerable),
+                    "Any",
+                    new[] { childProp.DeclaringType }!,
+                    Expression.Property(parentParameter, allowedProperty.RelationName!),
+                    Expression.Lambda(childCall, childParameter)
                 );
-                var lambdaExpr = Expression.Lambda<Func<StoreAssignment, bool>>(lambdaBody, lambdaParam);
 
-                var anyMethod = typeof(Enumerable)
-                    .GetMethods()
-                    .Where(m => m.Name == "Any")
-                    .Single(m => m.GetParameters().Length == 2)
-                    .MakeGenericMethod(typeof(StoreAssignment));
+                // var lambdaParam = Expression.Parameter(childPropType, "x");
+                // var lambdaBody  = BuildLambdaBody(childPropName, filter.Operator, childPropValue, lambdaParam);
+                // if (lambdaBody == null) throw new Exception("Invalid configuration exception.");
+                //
+                // var lambdaExpr = Expression.Lambda(lambdaBody, lambdaParam);
+                //
+                // var anyMethod = typeof(Enumerable)
+                //     .GetMethods()
+                //     .Where(m => m.Name == "Any")
+                //     .Single(m => m.GetParameters().Length == 2)
+                //     .MakeGenericMethod(childPropType);
 
-                var whereExpr = Expression.Call(anyMethod,
-                    Expression.Property(parentLambdaParam, parentPropName),
-                    lambdaExpr);
+                // var whereExpr = Expression.Call(anyMethod,
+                //     Expression.Property(parentLambdaParam, propertyName),
+                //     lambdaExpr);
 
-                var lambda = Expression.Lambda<Func<T, bool>>(whereExpr, parentLambdaParam);
+                var parentLambda = Expression.Lambda<Func<T, bool>>(anyExpression, parentParameter);
 
-                Console.WriteLine();
-                Console.WriteLine($"{lambdaParam}");
-                Console.WriteLine($"{lambdaBody}");
-                Console.WriteLine($"{lambdaExpr}");
-                Console.WriteLine($"{whereExpr}");
+                Console.WriteLine("\nLambda expression:");
+                Console.WriteLine($"{parentLambda}");
 
+                filteredQuery = filteredQuery.Where(parentLambda);
+            }
+            else
+            {
+                switch (filter.Operator)
+                {
+                    case OperatorsFilter.EqualOperator:
+                        filteredQuery = filteredQuery.Where($"{propertyName} == @0", filter.Value);
+                        break;
+                    case OperatorsFilter.NotEqualOperator:
+                        filteredQuery = filteredQuery.Where($"{propertyName} != @0", filter.Value);
+                        break;
+                    case OperatorsFilter.LikeOperator:
+                        filteredQuery = filteredQuery.Where($"{propertyName}.Contains(@0)", filter.Value);
+                        break;
+                    case OperatorsFilter.NotLikeOperator:
+                        filteredQuery = filteredQuery.Where($"!{propertyName}.Contains(@0)", filter.Value);
+                        break;
+                    case OperatorsFilter.BetweenOperator:
+                    {
+                        object from  = null!;
+                        object until = null!;
+                        var allowBetween = new[]
+                            {
+                                typeof(DateTime),
+                                typeof(double),
+                                typeof(int),
+                                typeof(long),
+                                typeof(float),
+                                typeof(decimal)
+                            }
+                            .Contains(prop.PropertyType);
 
-                filteredQuery = filteredQuery.Where(lambda);
+                        if (allowBetween)
+                        {
+                            if (prop.PropertyType == typeof(DateTime))
+                            {
+                                from  = DateTime.Parse(((JArray)filter.Value)[0].ToString());
+                                until = DateTime.Parse(((JArray)filter.Value)[1].ToString());
+                            }
+                            else
+                            {
+                                from  = Convert.ToDouble(((JArray)filter.Value)[0]);
+                                until = Convert.ToDouble(((JArray)filter.Value)[1]);
+                            }
+                        }
+
+                        filteredQuery = filteredQuery.Where($"{propertyName} >= @0 AND {filter.Field} <= @1", from,
+                            until);
+                        break;
+                    }
+                    case OperatorsFilter.LessThanOperator:
+                    {
+                        filteredQuery = filteredQuery.Where($"{propertyName} < @0", filter.Value);
+                        break;
+                    }
+                    case OperatorsFilter.LessThanEqualOperator:
+                    {
+                        filteredQuery = filteredQuery.Where($"{propertyName} <= @0", filter.Value);
+                        break;
+                    }
+                    case OperatorsFilter.GreaterThanOperator:
+                    {
+                        filteredQuery = filteredQuery.Where($"{propertyName} > @0", filter.Value);
+                        break;
+                    }
+                    case OperatorsFilter.GreaterThanEqualOperator:
+                    {
+                        filteredQuery = filteredQuery.Where($"{propertyName} >= @0", filter.Value);
+                        break;
+                    }
+                    case OperatorsFilter.InOperator:
+                    {
+                        filteredQuery = filteredQuery.Where($"{(JArray)filter.Value}.Contains(@0)", propertyName);
+                        break;
+                    }
+                    case OperatorsFilter.NotInOperator:
+                    {
+                        filteredQuery = filteredQuery.Where($"!{(JArray)filter.Value}.Contains(@0)", propertyName);
+                        break;
+                    }
+                    default: continue;
+                }
             }
         }
 
-        // foreach (var filter in filterList)
-        // {
-        //     var parentPropName = filter.Field;
-        //
-        //     /* check the filter field key is in allowed property param key */
-        //     var allowedProperty = AllowedPropertyFilters?.FirstOrDefault(_ => _.ParamKey == parentPropName);
-        //     if (allowedProperty != null)
-        //     {
-        //         /* when allowed property is not null -> override parentPropName to allowed param key */
-        //         parentPropName = allowedProperty.ParamKey;
-        //
-        //         /* when allowed property name is not null -> override parentPropName to allowed property name */
-        //         if (!string.IsNullOrEmpty(allowedProperty.PropertyName))
-        //             parentPropName = allowedProperty.PropertyName;
-        //     }
-        //
-        //     /* check the propertyName is exist in parent property class */
-        //     var prop = entityProperties.FirstOrDefault(e => e.Name.Equals(parentPropName));
-        //     if (prop == null)
-        //     {
-        //         Console.ForegroundColor = ConsoleColor.Yellow;
-        //         Console.WriteLine($"Property {parentPropName} is not exist in {typeof(T).Name} class.");
-        //         Console.ResetColor();
-        //         continue;
-        //     }
-        //
-        //     var propType = prop.PropertyType;
-        //
-        //     /* check the property type in parent class is reference to nested child using ICollection type. */
-        //     if (propType.IsGenericType && propType.GetGenericTypeDefinition() == typeof(ICollection<>))
-        //     {
-        //         if (allowedProperty?.ChildPropertyName == null)
-        //             throw new Exception("Please init your property child name.");
-        //
-        //         // If the property is an ICollection, check if it contains the specified value
-        //         var childPropName   = allowedProperty.ChildPropertyName;
-        //         var childPropValue  = filter.Value;
-        //         var childPropType   = propType.GetGenericArguments()[0];
-        //         var childProperties = childPropType.GetProperties();
-        //
-        //         var childProp = childProperties.FirstOrDefault(p => p.Name == childPropName);
-        //         if (childProp == null)
-        //         {
-        //             Console.ForegroundColor = ConsoleColor.Yellow;
-        //             Console.WriteLine($"Property {childPropName} is not exist.");
-        //             Console.ResetColor();
-        //             continue;
-        //         }
-        //
-        //         var lambdaParam = Expression.Parameter(childPropType, "c");
-        //         var memberExpr  = Expression.Property(lambdaParam, childProp);
-        //         var lambdaBody  = Expression.Equal(memberExpr, Expression.Constant(childPropValue));
-        //         var lambdaExpr  = Expression.Lambda<Func<object, bool>>(lambdaBody, lambdaParam);
-        //
-        //         var anyMethod = typeof(Enumerable)
-        //             .GetMethods()
-        //             .Where(m => m.Name == "Any")
-        //             .Single(m => m.GetParameters().Length == 2)
-        //             .MakeGenericMethod(childPropType);
-        //
-        //         var whereExpr = Expression.Call(
-        //             anyMethod,
-        //             Expression.Property(memberExpr, "AsQueryable"),
-        //             lambdaExpr
-        //         );
-        //
-        //         filteredQuery = filteredQuery.Provider.CreateQuery<T>(
-        //             Expression.Call(
-        //                 typeof(Queryable),
-        //                 "Where",
-        //                 new[] { typeof(T) },
-        //                 filteredQuery.Expression,
-        //                 Expression.Lambda<Func<T, bool>>(whereExpr, lambdaExpr.Parameters.Single())
-        //             )
-        //         );
-        //     }
-        //     else
-        //     {
-        //         // If the property is not an ICollection, apply the filter normally
-        //         switch (filter.Operator)
-        //         {
-        //             case OperatorsFilter.EqualOperator:
-        //                 filteredQuery = filteredQuery.Where($"{filter.Field} == @0", filter.Value);
-        //                 break;
-        //             case OperatorsFilter.NotEqualOperator:
-        //                 filteredQuery = filteredQuery.Where($"{filter.Field} != @0", filter.Value);
-        //                 break;
-        //             case OperatorsFilter.LikeOperator:
-        //                 filteredQuery = filteredQuery.Where($"{filter.Field}.Contains(@0)", filter.Value);
-        //                 break;
-        //             default:
-        //                 continue;
-        //         }
-        //     }
-        // }
-
         return filteredQuery;
     }
+
+    private static string BuildLambdaParameterName(string name) => string.Concat(name.Where(char.IsUpper)).ToLower();
+
+    // private static LambdaExpression BuildLambdaExpression<T>(
+    //     string property,
+    //     string operand,
+    //     object value,
+    //     ParameterExpression? childParam = null
+    // )
+    // {
+    //     try
+    //     {
+    //         var parameter = Expression.Parameter(typeof(T), "x");
+    //         var member    = Expression.Property(parameter, property);
+    //
+    //         MethodCallExpression? call = null;
+    //
+    //         switch (operand)
+    //         {
+    //             case OperatorsFilter.EqualOperator:
+    //                 var method   = property.GetType().GetMethod("Equals", new[] { property.GetType() });
+    //                 var constant = Expression.Constant(value);
+    //                 call = Expression.Call(member, method, constant);
+    //                 break;
+    //         }
+    //
+    //         return childParam is null
+    //             ? Expression.Lambda<Func<T, bool>>()
+    //     }
+    //     catch (Exception e)
+    //     {
+    //         Console.WriteLine($"Error when build lambda\nErrors: {e.Message}");
+    //         throw;
+    //     }
+    // }
 }
