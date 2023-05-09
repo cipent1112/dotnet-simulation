@@ -1,4 +1,4 @@
-namespace Simulation.Shared;
+namespace Simulation.Shared.Models;
 
 public class ProductImage
 {

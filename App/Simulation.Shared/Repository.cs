@@ -1,10 +1,16 @@
 using Microsoft.EntityFrameworkCore;
+using Simulation.Shared.Models;
 
 namespace Simulation.Shared;
 
-public static class MockRepository
+public class Repository : IRepository
 {
-    public static IQueryable<Store> Stores => new List<Store>
+    private readonly DatabaseContext _db;
+
+    public Repository(DatabaseContext db)
+    {
+        _db = db;
+        var stores = new List<Store>
         {
             new()
             {
@@ -29,27 +35,30 @@ public static class MockRepository
                 {
                     new()
                     {
-                        Id            = "P001",
-                        StoreId       = "S001",
-                        Name          = "IPhone XR",
-                        Description   = "Lorem ipsum",
-                        ProductImages = new List<ProductImage> { new() { ProductId = "P001", Url = "iphonexr.com" } }
+                        Id          = "P001",
+                        StoreId     = "S001",
+                        Name        = "IPhone XR",
+                        Description = "Lorem ipsum",
+                        ProductImages = new List<ProductImage>
+                            { new() { ProductId = "P001", Url = "iphonexr.com" } }
                     },
                     new()
                     {
-                        Id            = "P002",
-                        StoreId       = "S001",
-                        Name          = "IPhone 11",
-                        Description   = "Lorem ipsum",
-                        ProductImages = new List<ProductImage> { new() { ProductId = "P002", Url = "iphone11.com" } }
+                        Id          = "P002",
+                        StoreId     = "S001",
+                        Name        = "IPhone 11",
+                        Description = "Lorem ipsum",
+                        ProductImages = new List<ProductImage>
+                            { new() { ProductId = "P002", Url = "iphone11.com" } }
                     },
                     new()
                     {
-                        Id            = "P003",
-                        StoreId       = "S001",
-                        Name          = "IPhone 12",
-                        Description   = "Lorem ipsum",
-                        ProductImages = new List<ProductImage> { new() { ProductId = "P003", Url = "iphone12.com" } }
+                        Id          = "P003",
+                        StoreId     = "S001",
+                        Name        = "IPhone 12",
+                        Description = "Lorem ipsum",
+                        ProductImages = new List<ProductImage>
+                            { new() { ProductId = "P003", Url = "iphone12.com" } }
                     }
                 },
                 Locations = new List<Location>
@@ -82,27 +91,30 @@ public static class MockRepository
                 {
                     new()
                     {
-                        Id            = "P004",
-                        StoreId       = "S002",
-                        Name          = "Samsung S21",
-                        Description   = "Lorem ipsum",
-                        ProductImages = new List<ProductImage> { new() { ProductId = "P004", Url = "samsungs21.com" } }
+                        Id          = "P004",
+                        StoreId     = "S002",
+                        Name        = "Samsung S21",
+                        Description = "Lorem ipsum",
+                        ProductImages = new List<ProductImage>
+                            { new() { ProductId = "P004", Url = "samsungs21.com" } }
                     },
                     new()
                     {
-                        Id            = "P005",
-                        StoreId       = "S002",
-                        Name          = "Samsung S22",
-                        Description   = "Lorem ipsum",
-                        ProductImages = new List<ProductImage> { new() { ProductId = "P005", Url = "samsungs22.com" } }
+                        Id          = "P005",
+                        StoreId     = "S002",
+                        Name        = "Samsung S22",
+                        Description = "Lorem ipsum",
+                        ProductImages = new List<ProductImage>
+                            { new() { ProductId = "P005", Url = "samsungs22.com" } }
                     },
                     new()
                     {
-                        Id            = "P006",
-                        StoreId       = "S002",
-                        Name          = "Samsung S23",
-                        Description   = "Lorem ipsum",
-                        ProductImages = new List<ProductImage> { new() { ProductId = "P006", Url = "samsungs23.com" } }
+                        Id          = "P006",
+                        StoreId     = "S002",
+                        Name        = "Samsung S23",
+                        Description = "Lorem ipsum",
+                        ProductImages = new List<ProductImage>
+                            { new() { ProductId = "P006", Url = "samsungs23.com" } }
                     }
                 },
                 Locations = new List<Location>
@@ -135,27 +147,30 @@ public static class MockRepository
                 {
                     new()
                     {
-                        Id            = "P007",
-                        StoreId       = "S003",
-                        Name          = "Oppo Reno 6",
-                        Description   = "Lorem ipsum",
-                        ProductImages = new List<ProductImage> { new() { ProductId = "P007", Url = "opporeno6.com" } }
+                        Id          = "P007",
+                        StoreId     = "S003",
+                        Name        = "Oppo Reno 6",
+                        Description = "Lorem ipsum",
+                        ProductImages = new List<ProductImage>
+                            { new() { ProductId = "P007", Url = "opporeno6.com" } }
                     },
                     new()
                     {
-                        Id            = "P008",
-                        StoreId       = "S003",
-                        Name          = "Oppo Reno 7",
-                        Description   = "Lorem ipsum",
-                        ProductImages = new List<ProductImage> { new() { ProductId = "P008", Url = "opporeno7.com" } }
+                        Id          = "P008",
+                        StoreId     = "S003",
+                        Name        = "Oppo Reno 7",
+                        Description = "Lorem ipsum",
+                        ProductImages = new List<ProductImage>
+                            { new() { ProductId = "P008", Url = "opporeno7.com" } }
                     },
                     new()
                     {
-                        Id            = "P009",
-                        StoreId       = "S003",
-                        Name          = "Oppo Reno 8",
-                        Description   = "Lorem ipsum",
-                        ProductImages = new List<ProductImage> { new() { ProductId = "P009", Url = "opporeno8.com" } }
+                        Id          = "P009",
+                        StoreId     = "S003",
+                        Name        = "Oppo Reno 8",
+                        Description = "Lorem ipsum",
+                        ProductImages = new List<ProductImage>
+                            { new() { ProductId = "P009", Url = "opporeno8.com" } }
                     }
                 },
                 Locations = new List<Location>
@@ -165,8 +180,24 @@ public static class MockRepository
                     new() { StoreId = "S003", City = "Surabaya", Address = "Jalan Surabaya" }
                 }
             }
-        }.AsQueryable()
-        .Include(s => s.Products).ThenInclude(p => p.ProductImages)
-        .Include(s => s.StoreAssignments)
-        .Include(s => s.Locations);
+        };
+        _db.Store.AddRange(stores);
+        _db.SaveChanges();
+    }
+
+    public IQueryable<Store> Stores()
+    {
+        return _db.Store
+            .Include(s => s.Products).ThenInclude(p => p.ProductImages)
+            .Include(s => s.StoreAssignments)
+            .Include(s => s.Locations).AsQueryable();
+    }
+
+    public IQueryable<Product> Products()
+    {
+        return _db.Product
+            .Include(s => s.Store).ThenInclude(p => p.StoreAssignments)
+            // .Include(s => s.Store).ThenInclude(p => p.Locations)
+            .Include(s => s.ProductImages).AsQueryable();
+    }
 }

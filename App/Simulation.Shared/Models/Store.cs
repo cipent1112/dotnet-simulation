@@ -2,7 +2,7 @@
 
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Simulation.Shared;
+namespace Simulation.Shared.Models;
 
 public class Store
 {
