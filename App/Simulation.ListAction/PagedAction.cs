@@ -143,8 +143,9 @@ public class PagedAction
             query = relationMode switch
             {
                 0 or 1 => query.Where($"{property} >= @0 && {property} <= @1", from, until),
-                2      => query.Where($"{property}.Any(x => x.{filterProperty} >= @0 && x.{filterProperty} <= @1)"),
-                _      => query
+                2 => query.Where($"{property}.Any(x => x.{filterProperty} >= @0 && x.{filterProperty} <= @1)", from,
+                    until),
+                _ => query
             };
 
             return query;

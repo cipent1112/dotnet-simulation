@@ -1,5 +1,6 @@
 using System.Linq.Dynamic.Core;
 using System.Reflection;
+using Newtonsoft.Json.Linq;
 
 namespace Simulation.ListAction;
 
@@ -31,6 +32,7 @@ public class ListAction
             if (!operatorFields.Contains(filter.Operator)) continue;
 
             var key                = alProp.Key;
+            var value              = filter.Value;
             var relationProperties = alProp.RelationProperties;
             var filterProperty     = alProp.FilterProperty ?? key;
 
@@ -56,20 +58,52 @@ public class ListAction
                 }
 
                 propertyType = previousClass.GetProperty(filterProperty)?.PropertyType;
-                condition = BuildCondition(modes, filterProperty, propertyType!, filter.Operator, relationProperties);
+                condition    = BuildCondition(modes, filterProperty, filter.Operator, relationProperties);
             }
-            else condition = BuildCondition(Array.Empty<int>(), filterProperty, propertyType!, filter.Operator, null);
+            else condition = BuildCondition(Array.Empty<int>(), filterProperty, filter.Operator, null);
+
+            if (filter.Operator.Equals(OperatorsFilter.BetweenOperator))
+            {
+                var allowBetween = new[]
+                {
+                    typeof(DateTime),
+                    typeof(double),
+                    typeof(int),
+                    typeof(long),
+                    typeof(float),
+                    typeof(decimal)
+                }.Contains(propertyType);
+                if (!allowBetween)
+                    throw new Exception(
+                        "Invalid property type, only datetime and number type when using between operator");
+
+                object from;
+                object until;
+
+                switch (propertyType == typeof(DateTime))
+                {
+                    case true:
+                        from  = DateTime.Parse(((JArray)value)[0].ToString());
+                        until = DateTime.Parse(((JArray)value)[1].ToString());
+                        break;
+                    default:
+                        from  = Convert.ToDouble(((JArray)value)[0]);
+                        until = Convert.ToDouble(((JArray)value)[1]);
+                        break;
+                }
+
+                query = query.Where(condition, from, until);
+            }
+            else query = query.Where(condition, value);
 
             Console.WriteLine(condition);
-            query = query.Where("r => r.Districts.Any(d => d.Villages.Any(v => v.PostalCode = @0))", filter.Value);
         }
 
         return query;
     }
 
 
-    private static string BuildCondition(IReadOnlyList<int> modes, string property, Type propertyType, string operand,
-        string[]? relations)
+    private static string BuildCondition(IReadOnlyList<int> modes, string property, string operand, string[]? relations)
     {
         var latestMode = modes.Count > 0 ? modes[^1] : 1;
         var condition  = string.Empty;
@@ -91,19 +125,15 @@ public class ListAction
                     };
                     break;
                 case 2:
-                    var latestCondition = $"_ => _.{property} {operand} @0";
+                    var latestCondition = $"{property} {operand} @0";
                     for (var i = relations!.Length - 1; i >= 0; i--)
                     {
-                        switch (modes[i])
+                        condition = modes[i] switch
                         {
-                            case 2:
-                                condition = $"_ => _.{relations[i]}.Any({latestCondition})";
-                                break;
-                            case 0 or 1:
-                                condition = condition[6..];
-                                condition = $"_ => _.{relations[i]}{condition}";
-                                break;
-                        }
+                            2      => $"{relations[i]}.Any({latestCondition})",
+                            0 or 1 => $"{relations[i]}{condition}",
+                            _      => condition
+                        };
 
                         latestCondition = condition;
                     }
@@ -134,8 +164,8 @@ public class ListAction
                 case 2:
                     var latestCondition = operand switch
                     {
-                        OperatorsFilter.LikeOperator => $"_ => _.{property}.Contains(@0)",
-                        OperatorsFilter.InOperator   => $"_ => @0.Contains(_.{property})",
+                        OperatorsFilter.LikeOperator => $"{property}.Contains(@0)",
+                        OperatorsFilter.InOperator   => $"@0.Contains({property})",
                         _                            => condition
                     };
 
@@ -144,11 +174,11 @@ public class ListAction
                         switch (modes[i])
                         {
                             case 2:
-                                condition = $"_ => _.{relations[i]}.Any({latestCondition})";
+                                condition = $"{relations[i]}.Any({latestCondition})";
                                 break;
                             case 0 or 1:
-                                condition = condition[6..];
-                                condition = $"_ => _.{relations[i]}{condition}";
+
+                                condition = $"{relations[i]}{condition}";
                                 break;
                         }
 
@@ -181,23 +211,19 @@ public class ListAction
                 case 2:
                     var latestCondition = operand switch
                     {
-                        OperatorsFilter.NotLikeOperator => $"_ => !_.{property}.Contains(@0)",
-                        OperatorsFilter.NotInOperator   => $"_ => !@0.Contains(_.{property})",
+                        OperatorsFilter.NotLikeOperator => $"!{property}.Contains(@0)",
+                        OperatorsFilter.NotInOperator   => $"!@0.Contains({property})",
                         _                               => condition
                     };
 
                     for (var i = relations!.Length - 1; i >= 0; i--)
                     {
-                        switch (modes[i])
+                        condition = modes[i] switch
                         {
-                            case 2:
-                                condition = $"_ => _.{relations[i]}.Any({latestCondition})";
-                                break;
-                            case 0 or 1:
-                                condition = condition[6..];
-                                condition = $"_ => _.{relations[i]}{condition}";
-                                break;
-                        }
+                            2      => $"{relations[i]}.Any({latestCondition})",
+                            0 or 1 => $"{relations[i]}{condition}",
+                            _      => condition
+                        };
 
                         latestCondition = condition;
                     }
@@ -207,17 +233,6 @@ public class ListAction
         }
         else if (operand.Equals(OperatorsFilter.BetweenOperator))
         {
-            var allowBetween = new[]
-            {
-                typeof(DateTime),
-                typeof(double),
-                typeof(int),
-                typeof(long),
-                typeof(float),
-                typeof(decimal)
-            }.Contains(propertyType);
-            if (!allowBetween) throw new Exception("Invalid property type when using between operator");
-
             switch (latestMode)
             {
                 case 0 or 1:
@@ -229,19 +244,15 @@ public class ListAction
                     };
                     break;
                 case 2:
-                    var latestCondition = $"_ => _.{property} >= @0 && _.{property} <= @1";
+                    var latestCondition = $"{property} >= @0 && {property} <= @1";
                     for (var i = relations!.Length - 1; i >= 0; i--)
                     {
-                        switch (modes[i])
+                        condition = modes[i] switch
                         {
-                            case 2:
-                                condition = $"_ => _.{relations[i]}.Any({latestCondition})";
-                                break;
-                            case 0 or 1:
-                                condition = condition[6..];
-                                condition = $"_ => _.{relations[i]}{condition}";
-                                break;
-                        }
+                            2      => $"{relations[i]}.Any({latestCondition})",
+                            0 or 1 => $"{relations[i]}{condition}",
+                            _      => condition
+                        };
 
                         latestCondition = condition;
                     }
