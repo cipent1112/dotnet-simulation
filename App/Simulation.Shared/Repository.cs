@@ -10,6 +10,7 @@ public class Repository : IRepository
     public Repository(DatabaseContext db)
     {
         _db = db;
+
         var stores = new List<Store>
         {
             new()
@@ -181,6 +182,71 @@ public class Repository : IRepository
                 }
             }
         };
+
+        var provinces = new List<Province>
+        {
+            new()
+            {
+                Id = "p1", Name = "Jawa Timur", Status = "Active",
+                ProvinceAssignments = new List<ProvinceAssignment>
+                {
+                    new() { Id = "pa1", ProvinceId = "p1", AssignmentStatus = "Approved", Status = "Active" }
+                },
+                Regencies = new List<Regency>
+                {
+                    new()
+                    {
+                        Id = "r1", ProvinceId = "p1", Code = "malang", Name = "Kota Malang", Status = "Active",
+                        Districts = new List<District>
+                        {
+                            new()
+                            {
+                                Id = "d1", RegencyId = "r1", Name = "Lowokwaru", Status = "Active",
+                                Villages = new List<Village>
+                                {
+                                    new()
+                                    {
+                                        Id     = "v1", DistrictId = "d1", Name = "Tunjungsekar", PostalCode = "001",
+                                        Status = "Active"
+                                    },
+                                    new()
+                                    {
+                                        Id     = "v2", DistrictId = "d1", Name = "Mojolangu", PostalCode = "002",
+                                        Status = "Active"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    new()
+                    {
+                        Id = "r2", ProvinceId = "p1", Code = "surabaya", Name = "Kota Surabaya", Status = "Active",
+                        Districts = new List<District>
+                        {
+                            new()
+                            {
+                                Id = "d2", RegencyId = "r2", Name = "Kenjeran", Status = "Active",
+                                Villages = new List<Village>
+                                {
+                                    new()
+                                    {
+                                        Id     = "v3", DistrictId = "d2", Name = "Bulakbanteng", PostalCode = "003",
+                                        Status = "Active"
+                                    },
+                                    new()
+                                    {
+                                        Id     = "v4", DistrictId = "d2", Name = "Tambakwedi", PostalCode = "004",
+                                        Status = "Active"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        _db.Province.AddRange(provinces);
         _db.Store.AddRange(stores);
         _db.SaveChanges();
     }
@@ -197,7 +263,24 @@ public class Repository : IRepository
     {
         return _db.Product
             .Include(s => s.Store).ThenInclude(p => p.StoreAssignments)
-            // .Include(s => s.Store).ThenInclude(p => p.Locations)
             .Include(s => s.ProductImages).AsQueryable();
+    }
+
+    public IQueryable<Province> Provinces()
+    {
+        return _db.Province
+            .Include(_ => _.Regencies)
+            .ThenInclude(_ => _.Districts)
+            .ThenInclude(_ => _.Villages)
+            .AsQueryable();
+    }
+
+    public IQueryable<Regency> Regencies()
+    {
+        return _db.Regency
+            .Include(_ => _.Province).ThenInclude(_ => _.ProvinceAssignments)
+            .Include(_ => _.Districts)
+            .ThenInclude(_ => _.Villages)
+            .AsQueryable();
     }
 }

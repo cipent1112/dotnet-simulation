@@ -34,7 +34,7 @@ internal static class Program
                 try
                 {
                     var filters = BuildFilters(filtersPayloadBase64!);
-                    var (count, result) = BuildProductList(repo, filters);
+                    var (count, result) = BuildRegencyList(repo, filters);
 
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
                     Console.WriteLine();
@@ -92,22 +92,22 @@ internal static class Program
     private static (int count, object) BuildStoreList(IRepository repo, List<PropertiesFilter> filters)
     {
         var stores = repo.Stores();
-        var allowedPropertyFilters = new List<AllowedPropertyFilter>
+        var allowedFilterProperty = new List<AllowedFilterProperty>
         {
             new()
             {
-                ParamKey       = "StoreName",
+                Key            = "StoreName",
                 FilterProperty = nameof(Store.Name)
             },
             new()
             {
-                ParamKey         = "CurrentAssignment",
-                RelationProperty = nameof(Store.StoreAssignments),
-                FilterProperty   = nameof(StoreAssignment.AssignmentStatus)
+                Key                = "CurrentAssignment",
+                RelationProperties = new[] { nameof(Store.StoreAssignments) },
+                FilterProperty     = nameof(StoreAssignment.AssignmentStatus)
             }
         };
 
-        stores = new PagedAction(allowedPropertyFilters).ApplyFilter(stores, filters);
+        stores = new ListAction(allowedFilterProperty).ApplyFilter(stores, filters);
         return (stores.Count(), stores.Select(s => new
         {
             s.Id,
@@ -115,6 +115,69 @@ internal static class Program
             AssignmentStatus = s.CurrentAssignment != null
                 ? s.CurrentAssignment.AssignmentStatus
                 : null
+        }).ToList());
+    }
+
+    private static (int count, object) BuildProvinceList(IRepository repo, List<PropertiesFilter> filters)
+    {
+        var provinces = repo.Provinces();
+        var allowedFilterProperty = new List<AllowedFilterProperty>
+        {
+            new()
+            {
+                Key = "PostalCode",
+                RelationProperties = new[]
+                {
+                    nameof(Province.Regencies),
+                    nameof(Regency.Districts),
+                    nameof(District.Villages)
+                },
+                FilterProperty = nameof(Village.PostalCode)
+            },
+            new()
+            {
+                Key            = "ProvinceName",
+                FilterProperty = nameof(Province.Name)
+            }
+        };
+
+        provinces = new ListAction(allowedFilterProperty).ApplyFilter(provinces, filters);
+        return (provinces.Count(), provinces.Select(s => new
+        {
+            s.Id,
+            s.Name
+        }).ToList());
+    }
+
+    private static (int count, object) BuildRegencyList(IRepository repo, List<PropertiesFilter> filters)
+    {
+        var regencies = repo.Regencies();
+        var allowedFilterProperty = new List<AllowedFilterProperty>
+        {
+            // new()
+            // {
+            //     Key            = "RegencyName",
+            //     FilterProperty = nameof(Regency.Name)
+            // },
+            new()
+            {
+                Key                = "PostalCode",
+                RelationProperties = new[] { nameof(Regency.Districts), nameof(District.Villages) },
+                FilterProperty     = nameof(Village.PostalCode)
+            }
+            // new()
+            // {
+            //     Key                = "CurrentAssignment",
+            //     RelationProperties = new[] { nameof(Regency.Province), nameof(Province.ProvinceAssignments) },
+            //     FilterProperty     = nameof(ProvinceAssignment.AssignmentStatus)
+            // }
+        };
+
+        regencies = new ListAction(allowedFilterProperty).ApplyFilter(regencies, filters);
+        return (regencies.Count(), regencies.Select(s => new
+        {
+            s.Id,
+            s.Name
         }).ToList());
     }
 
