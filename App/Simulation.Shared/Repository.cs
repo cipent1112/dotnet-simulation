@@ -98,9 +98,8 @@ public class Repository : IRepository
     public IQueryable<Province> Provinces()
     {
         return _db.Province
-            .Include(_ => _.Regencies)
-            .ThenInclude(_ => _.Districts)
-            .ThenInclude(_ => _.Villages)
+            .Include(_ => _.Regencies).ThenInclude(_ => _.Districts).ThenInclude(_ => _.Villages)
+            .Include(_ => _.RegionProvinces).ThenInclude(_ => _.Region)
             .AsQueryable();
     }
 
@@ -108,6 +107,7 @@ public class Repository : IRepository
     {
         return _db.Regency
             .Include(_ => _.Province).ThenInclude(_ => _.ProvinceAssignments)
+            .Include(_ => _.Province).ThenInclude(_ => _.RegionProvinces).ThenInclude(_ => _.Region)
             .Include(_ => _.Districts)
             .ThenInclude(_ => _.Villages)
             .AsQueryable();
@@ -120,6 +120,7 @@ public class Repository : IRepository
             .ThenInclude(_ => _.Province)
             .ThenInclude(_ => _.RegionProvinces)
             .ThenInclude(_ => _.Region)
+            .Include(_ => _.Villages)
             .AsQueryable();
     }
 }

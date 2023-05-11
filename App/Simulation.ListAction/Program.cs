@@ -34,7 +34,7 @@ internal static class Program
                 try
                 {
                     var filters = BuildFilters(filtersPayloadBase64!);
-                    var (count, result) = BuildRegencyList(repo, filters);
+                    var (count, result) = BuildProvinces(repo, filters);
 
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
                     Console.WriteLine();
@@ -89,7 +89,7 @@ internal static class Program
             }).ToList();
     }
 
-    private static (int count, object) BuildRegencyList(IRepository repo, List<PropertiesFilter> filters)
+    private static (int count, object) BuildDistricts(IRepository repo, List<PropertiesFilter> filters)
     {
         Console.ForegroundColor = ConsoleColor.Magenta;
         Console.WriteLine("Start to load district list...");
@@ -100,15 +100,9 @@ internal static class Program
         {
             new()
             {
-                Key = "RegionName",
-                RelationProperties = new[]
-                {
-                    nameof(District.Regency),
-                    nameof(Regency.Province),
-                    nameof(Province.RegionProvinces),
-                    nameof(RegionProvince.Region)
-                },
-                FilterProperty = nameof(Region.Name)
+                Key                = "RegencyName",
+                RelationProperties = new[] { nameof(Regency) },
+                FilterProperty     = nameof(Regency.Name)
             }
         };
 
@@ -126,6 +120,72 @@ internal static class Program
                 _.RegionId,
                 _.ProvinceId
             })
+        }).ToList());
+    }
+
+    private static (int count, object) BuildRegencies(IRepository repo, List<PropertiesFilter> filters)
+    {
+        Console.ForegroundColor = ConsoleColor.Magenta;
+        Console.WriteLine("Start to load regency list...");
+        Console.ResetColor();
+
+        var regencies = repo.Regencies();
+        var allowedFilterProperty = new List<AllowedFilterProperty>
+        {
+            new()
+            {
+                Key = "VillageName",
+                RelationProperties = new[]
+                {
+                    nameof(Province),
+                    nameof(Province.RegionProvinces),
+                    nameof(RegionProvince.Region)
+                },
+                FilterProperty = nameof(Region.Name)
+            }
+        };
+
+        regencies = new ListAction(allowedFilterProperty).ApplyFilter(regencies, filters);
+        return (regencies.Count(), regencies.Select(r => new
+        {
+            r.Id,
+            r.Name,
+            ProvinceName = r.Province.Name,
+            RegionProvinces = r.Province.RegionProvinces
+                .Select(rp => new { RegionName = rp.Region.Name })
+                .FirstOrDefault()
+        }).ToList());
+    }
+
+    private static (int count, object) BuildProvinces(IRepository repo, List<PropertiesFilter> filters)
+    {
+        Console.ForegroundColor = ConsoleColor.Magenta;
+        Console.WriteLine("Start to load province list...");
+        Console.ResetColor();
+
+        var provinces = repo.Provinces();
+        var allowedFilterProperty = new List<AllowedFilterProperty>
+        {
+            new()
+            {
+                Key = "RegionName",
+                RelationProperties = new[]
+                {
+                    nameof(Province.RegionProvinces),
+                    nameof(Region)
+                },
+                FilterProperty = nameof(Region.Name)
+            }
+        };
+
+        provinces = new ListAction(allowedFilterProperty).ApplyFilter(provinces, filters);
+        return (provinces.Count(), provinces.Select(p => new
+        {
+            p.Id,
+            p.Name,
+            RegionName = p.RegionProvinces
+                .Select(rp => new { RegionName = rp.Region.Name })
+                .FirstOrDefault()
         }).ToList());
     }
 }

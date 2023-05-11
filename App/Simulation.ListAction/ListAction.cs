@@ -57,6 +57,7 @@ public class ListAction
                         : propertyInfo.PropertyType;
                 }
 
+
                 propertyType = previousClass.GetProperty(filterProperty)?.PropertyType;
                 condition    = BuildCondition(modes, filterProperty, filter.Operator, relationProperties);
             }
@@ -95,22 +96,14 @@ public class ListAction
                 query = query.Where(condition, from, until);
             }
             else query = query.Where(condition, value);
-
-            Console.WriteLine(condition);
         }
 
         return query;
     }
 
-    // private static string BuildPropertyCondition(IReadOnlyList<int> modes, string[] relations)
-    // {
-    // }
-
     private static string BuildCondition(IReadOnlyList<int> modes, string property, string operand, string[]? relations)
     {
-        var latestMode = modes.Count > 0 ? modes[^1] : 1;
-        Console.WriteLine($"{string.Join(" ", modes)}");
-        var condition = string.Empty;
+        string propertyCondition;
 
         if (new List<string>
             {
@@ -119,157 +112,34 @@ public class ListAction
                 OperatorsFilter.GreaterThanOperator, OperatorsFilter.GreaterThanEqualOperator
             }.Contains(operand))
         {
-            switch (latestMode)
-            {
-                case 0 or 1:
-                    condition = (relations == null) switch
-                    {
-                        true => $"{property} {operand} @0",
-                        _    => $"{string.Join(".", relations!)}.{property} {operand} @0"
-                    };
-                    break;
-                case 2:
-                    var latestCondition = $"{property} {operand} @0";
-                    for (var i = relations!.Length - 1; i >= 0; i--)
-                    {
-                        condition = modes[i] switch
-                        {
-                            2      => $"{relations[i]}.Any({latestCondition})",
-                            0 or 1 => $"{relations[i]}.{condition}",
-                            _      => condition
-                        };
-
-                        latestCondition = condition;
-                    }
-
-                    break;
-            }
+            propertyCondition = $"{property} {operand} @0";
         }
-        else if (new List<string> { OperatorsFilter.LikeOperator, OperatorsFilter.InOperator }.Contains(operand))
+        else if (new List<string> { OperatorsFilter.LikeOperator }.Contains(operand))
         {
-            switch (latestMode)
-            {
-                case 0 or 1:
-                    Console.WriteLine($"{string.Join(".", relations!)}");
-                    var latestLatestMode = modes.Count > 0 ? modes[^2] : latestMode;
-                    if (latestLatestMode == 2)
-                    {
-                        
-                    }
-
-                    condition = operand switch
-                    {
-                        OperatorsFilter.LikeOperator => (relations == null) switch
-                        {
-                            true => $"{property}.Contains(@0)",
-                            _    => $"{string.Join(".", relations!)}.{property}.Contains(@0)"
-                        },
-                        OperatorsFilter.InOperator => (relations == null) switch
-                        {
-                            true => $"@0.Contains({property})",
-                            _    => $"@0.Contains({string.Join(".", relations!)}.{property})"
-                        },
-                        _ => condition
-                    };
-                    break;
-                case 2:
-                    var latestCondition = operand switch
-                    {
-                        OperatorsFilter.LikeOperator => $"{property}.Contains(@0)",
-                        OperatorsFilter.InOperator   => $"@0.Contains({property})",
-                        _                            => condition
-                    };
-
-                    for (var i = relations!.Length - 1; i >= 0; i--)
-                    {
-                        condition = modes[i] switch
-                        {
-                            2      => $"{relations[i]}.Any({latestCondition})",
-                            0 or 1 => $"{relations[i]}.{condition}",
-                            _      => condition
-                        };
-
-                        latestCondition = condition;
-                    }
-
-                    break;
-            }
+            propertyCondition = $"{property}.Contains(@0)";
         }
-        else if (new List<string> { OperatorsFilter.NotLikeOperator, OperatorsFilter.NotInOperator }.Contains(operand))
+        else if (new List<string> { OperatorsFilter.NotLikeOperator }.Contains(operand))
         {
-            switch (latestMode)
-            {
-                case 0 or 1:
-                    condition = operand switch
-                    {
-                        OperatorsFilter.NotLikeOperator => (relations == null) switch
-                        {
-                            true => $"!{property}.Contains(@0)",
-                            _    => $"!{string.Join(".", relations!)}.{property}.Contains(@0)"
-                        },
-                        OperatorsFilter.NotInOperator => (relations == null) switch
-                        {
-                            true => $"!@0.Contains({property})",
-                            _    => $"!@0.Contains({string.Join(".", relations!)}.{property})"
-                        },
-                        _ => condition
-                    };
-                    break;
-                case 2:
-                    var latestCondition = operand switch
-                    {
-                        OperatorsFilter.NotLikeOperator => $"!{property}.Contains(@0)",
-                        OperatorsFilter.NotInOperator   => $"!@0.Contains({property})",
-                        _                               => condition
-                    };
-
-                    for (var i = relations!.Length - 1; i >= 0; i--)
-                    {
-                        condition = modes[i] switch
-                        {
-                            2      => $"{relations[i]}.Any({latestCondition})",
-                            0 or 1 => $"{relations[i]}.{condition}",
-                            _      => condition
-                        };
-
-                        latestCondition = condition;
-                    }
-
-                    break;
-            }
+            propertyCondition = $"!{property}.Contains(@0)";
         }
         else if (operand.Equals(OperatorsFilter.BetweenOperator))
         {
-            switch (latestMode)
-            {
-                case 0 or 1:
-                    condition = (relations == null) switch
-                    {
-                        true => $"{property} >= @0 && {property} <= @1",
-                        _ => $"{string.Join(".", relations!)}.{property} >= @0 " +
-                             $"&& {string.Join(".", relations!)}.{property} <= @1"
-                    };
-                    break;
-                case 2:
-                    var latestCondition = $"{property} >= @0 && {property} <= @1";
-                    for (var i = relations!.Length - 1; i >= 0; i--)
-                    {
-                        condition = modes[i] switch
-                        {
-                            2      => $"{relations[i]}.Any({latestCondition})",
-                            0 or 1 => $"{relations[i]}.{condition}",
-                            _      => condition
-                        };
+            propertyCondition = $"{property} >= @0 && {property} <= @1";
+        }
+        else throw new Exception("Operand not supported");
 
-                        latestCondition = condition;
-                    }
 
-                    break;
-            }
+        if (!(relations?.Length >= 1)) return propertyCondition;
+
+        for (var iC = modes.Count - 1; iC >= 0; iC--)
+        {
+            propertyCondition = modes[iC] == 2
+                ? $"{relations[iC]}.Any({propertyCondition})"
+                : $"{relations[iC]}.{propertyCondition}";
         }
 
-
-        return condition;
+        Console.WriteLine(propertyCondition);
+        return propertyCondition;
     }
 
     private static int GetMode(Type propertyType)
