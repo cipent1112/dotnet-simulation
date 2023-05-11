@@ -5,7 +5,12 @@ public class Village
     public const string StatusActive   = "Active";
     public const string StatusInactive = "Inactive";
 
-    public string Id         { get; set; } = null!;
+    public Village()
+    {
+        Id = Guid.NewGuid().ToString().ToLower();
+    }
+    
+    public string Id         { get; set; }
     public string DistrictId { get; set; } = null!;
     public string Name       { get; set; } = null!;
     public string PostalCode { get; set; } = null!;

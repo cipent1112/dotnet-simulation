@@ -102,11 +102,15 @@ public class ListAction
         return query;
     }
 
+    // private static string BuildPropertyCondition(IReadOnlyList<int> modes, string[] relations)
+    // {
+    // }
 
     private static string BuildCondition(IReadOnlyList<int> modes, string property, string operand, string[]? relations)
     {
         var latestMode = modes.Count > 0 ? modes[^1] : 1;
-        var condition  = string.Empty;
+        Console.WriteLine($"{string.Join(" ", modes)}");
+        var condition = string.Empty;
 
         if (new List<string>
             {
@@ -131,7 +135,7 @@ public class ListAction
                         condition = modes[i] switch
                         {
                             2      => $"{relations[i]}.Any({latestCondition})",
-                            0 or 1 => $"{relations[i]}{condition}",
+                            0 or 1 => $"{relations[i]}.{condition}",
                             _      => condition
                         };
 
@@ -146,6 +150,13 @@ public class ListAction
             switch (latestMode)
             {
                 case 0 or 1:
+                    Console.WriteLine($"{string.Join(".", relations!)}");
+                    var latestLatestMode = modes.Count > 0 ? modes[^2] : latestMode;
+                    if (latestLatestMode == 2)
+                    {
+                        
+                    }
+
                     condition = operand switch
                     {
                         OperatorsFilter.LikeOperator => (relations == null) switch
@@ -171,16 +182,12 @@ public class ListAction
 
                     for (var i = relations!.Length - 1; i >= 0; i--)
                     {
-                        switch (modes[i])
+                        condition = modes[i] switch
                         {
-                            case 2:
-                                condition = $"{relations[i]}.Any({latestCondition})";
-                                break;
-                            case 0 or 1:
-
-                                condition = $"{relations[i]}{condition}";
-                                break;
-                        }
+                            2      => $"{relations[i]}.Any({latestCondition})",
+                            0 or 1 => $"{relations[i]}.{condition}",
+                            _      => condition
+                        };
 
                         latestCondition = condition;
                     }
@@ -221,7 +228,7 @@ public class ListAction
                         condition = modes[i] switch
                         {
                             2      => $"{relations[i]}.Any({latestCondition})",
-                            0 or 1 => $"{relations[i]}{condition}",
+                            0 or 1 => $"{relations[i]}.{condition}",
                             _      => condition
                         };
 
@@ -250,7 +257,7 @@ public class ListAction
                         condition = modes[i] switch
                         {
                             2      => $"{relations[i]}.Any({latestCondition})",
-                            0 or 1 => $"{relations[i]}{condition}",
+                            0 or 1 => $"{relations[i]}.{condition}",
                             _      => condition
                         };
 

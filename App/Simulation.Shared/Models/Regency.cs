@@ -5,7 +5,12 @@ public class Regency
     public const string StatusActive   = "Active";
     public const string StatusInactive = "Inactive";
 
-    public string Id         { get; set; } = null!;
+    public Regency()
+    {
+        Id = Guid.NewGuid().ToString().ToLower();
+    }
+
+    public string Id         { get; set; }
     public string ProvinceId { get; set; } = null!;
     public string Code       { get; set; } = null!;
     public string Name       { get; set; } = null!;

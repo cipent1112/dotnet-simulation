@@ -89,143 +89,43 @@ internal static class Program
             }).ToList();
     }
 
-    private static (int count, object) BuildStoreList(IRepository repo, List<PropertiesFilter> filters)
+    private static (int count, object) BuildRegencyList(IRepository repo, List<PropertiesFilter> filters)
     {
-        var stores = repo.Stores();
+        Console.ForegroundColor = ConsoleColor.Magenta;
+        Console.WriteLine("Start to load district list...");
+        Console.ResetColor();
+
+        var districts = repo.Districts();
         var allowedFilterProperty = new List<AllowedFilterProperty>
         {
             new()
             {
-                Key            = "StoreName",
-                FilterProperty = nameof(Store.Name)
-            },
-            new()
-            {
-                Key                = "CurrentAssignment",
-                RelationProperties = new[] { nameof(Store.StoreAssignments) },
-                FilterProperty     = nameof(StoreAssignment.AssignmentStatus)
+                Key = "RegionName",
+                RelationProperties = new[]
+                {
+                    nameof(District.Regency),
+                    nameof(Regency.Province),
+                    nameof(Province.RegionProvinces),
+                    nameof(RegionProvince.Region)
+                },
+                FilterProperty = nameof(Region.Name)
             }
         };
 
-        stores = new ListAction(allowedFilterProperty).ApplyFilter(stores, filters);
-        return (stores.Count(), stores.Select(s => new
+        districts = new ListAction(allowedFilterProperty).ApplyFilter(districts, filters);
+        return (districts.Count(), districts.Select(s => new
         {
             s.Id,
             s.Name,
-            AssignmentStatus = s.CurrentAssignment != null
-                ? s.CurrentAssignment.AssignmentStatus
-                : null
-        }).ToList());
-    }
-
-    private static (int count, object) BuildProvinceList(IRepository repo, List<PropertiesFilter> filters)
-    {
-        var provinces = repo.Provinces();
-        var allowedFilterProperty = new List<AllowedFilterProperty>
-        {
-            new()
+            RegencyName  = s.Regency.Name,
+            ProvinceName = s.Regency.Province.Name,
+            RegionProvince = s.Regency.Province.RegionProvinces.Select(_ => new
             {
-                Key = "PostalCode",
-                RelationProperties = new[]
-                {
-                    nameof(Province.Regencies),
-                    nameof(Regency.Districts),
-                    nameof(District.Villages)
-                },
-                FilterProperty = nameof(Village.PostalCode)
-            },
-            new()
-            {
-                Key            = "ProvinceName",
-                FilterProperty = nameof(Province.Name)
-            }
-        };
-
-        provinces = new ListAction(allowedFilterProperty).ApplyFilter(provinces, filters);
-        return (provinces.Count(), provinces.Select(s => new
-        {
-            s.Id,
-            s.Name
-        }).ToList());
-    }
-
-    private static (int count, object) BuildRegencyList(IRepository repo, List<PropertiesFilter> filters)
-    {
-        var regencies = repo.Regencies();
-        var allowedFilterProperty = new List<AllowedFilterProperty>
-        {
-            // new()
-            // {
-            //     Key            = "RegencyName",
-            //     FilterProperty = nameof(Regency.Name)
-            // },
-            new()
-            {
-                Key                = "PostalCode",
-                RelationProperties = new[] { nameof(Regency.Districts), nameof(District.Villages) },
-                FilterProperty     = nameof(Village.PostalCode)
-            }
-            // new()
-            // {
-            //     Key                = "CurrentAssignment",
-            //     RelationProperties = new[] { nameof(Regency.Province), nameof(Province.ProvinceAssignments) },
-            //     FilterProperty     = nameof(ProvinceAssignment.AssignmentStatus)
-            // }
-        };
-
-        regencies = new ListAction(allowedFilterProperty).ApplyFilter(regencies, filters);
-        return (regencies.Count(), regencies.Select(s => new
-        {
-            s.Id,
-            s.Name
-        }).ToList());
-    }
-
-    private static (int count, object) BuildProductList(IRepository repo, List<PropertiesFilter> filters)
-    {
-        var products = repo.Products();
-        var allowedPropertyFilters = new List<AllowedPropertyFilter>
-        {
-            new()
-            {
-                ParamKey = "Name"
-            },
-            new()
-            {
-                ParamKey       = "ProductName",
-                FilterProperty = nameof(Product.Name)
-            },
-            new()
-            {
-                ParamKey         = "StoreName",
-                RelationProperty = nameof(Product.Store),
-                FilterClass      = typeof(Store),
-                FilterProperty   = nameof(Store.Name)
-            },
-            new()
-            {
-                ParamKey         = "CurrentAssignment",
-                RelationClass    = typeof(Store),
-                RelationProperty = nameof(Store.StoreAssignments),
-                FilterClass      = typeof(StoreAssignment),
-                FilterProperty   = nameof(StoreAssignment.AssignmentStatus)
-            }
-        };
-
-        products = new PagedAction(allowedPropertyFilters).ApplyFilter(products, filters);
-        return (products.Count(), products.Select(p => new
-        {
-            p.Id,
-            p.Name,
-            p.Description,
-            Store = new
-            {
-                p.Store.Id,
-                p.Store.Name,
-                CurrentAssignment = p.Store.CurrentAssignment != null
-                    ? p.Store.CurrentAssignment.AssignmentStatus
-                    : null
-            }
+                RegionName   = _.Region.Name,
+                ProvinceName = _.Province.Name,
+                _.RegionId,
+                _.ProvinceId
+            })
         }).ToList());
     }
 }
