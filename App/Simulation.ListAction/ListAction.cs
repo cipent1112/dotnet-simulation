@@ -101,7 +101,7 @@ public class ListAction
         return query;
     }
 
-    private static string BuildCondition(IReadOnlyList<int> modes, string property, string operand, string[]? relations)
+    private static string BuildCondition(IReadOnlyList<int> relationTypes, string property, string operand, string[]? relations)
     {
         string propertyCondition;
 
@@ -131,9 +131,9 @@ public class ListAction
 
         if (!(relations?.Length >= 1)) return propertyCondition;
 
-        for (var iC = modes.Count - 1; iC >= 0; iC--)
+        for (var iC = relationTypes.Count - 1; iC >= 0; iC--)
         {
-            propertyCondition = modes[iC] == 2
+            propertyCondition = relationTypes[iC] == 2
                 ? $"{relations[iC]}.Any({propertyCondition})"
                 : $"{relations[iC]}.{propertyCondition}";
         }

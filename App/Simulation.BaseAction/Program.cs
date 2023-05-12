@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Simulation.BaseAction.Actions;
+using Simulation.BaseAction.Constants;
 using Simulation.BaseAction.Filters;
 using Simulation.Shared;
 using Simulation.Shared.Models;
@@ -97,10 +98,29 @@ internal static class Program
         Console.WriteLine("Start to load province list...");
         Console.ResetColor();
 
-        var provinces = repo.Provinces();
+        var allowedFilter = new List<AllowedFilter>
+        {
+            new()
+            {
+                Relations = new List<string> { nameof(Province.Regencies), nameof(Regency.Districts), nameof(District.Villages) },
+                Filters = new List<Filter>
+                {
+                    new() { Property = nameof(Village.Name) },
+                    new() { Property = nameof(Village.Status), FilterOperand = Operand.LikeOperator, FilterValue = "Active" },
+                    new() { Property = nameof(Village.PostalCode), FilterKey = "VillagePostalCode" }
+                }
+            },
+            new()
+            {
+                Filters = new List<Filter>
+                {
+                    new() { Property = nameof(Province.Name), FilterKey = "ProvinceName" }
+                }
+            }
+        };
 
-        var data = new ListAction<Province>(provinces).ApplyFilter(queryParams);
-        
+        var provinces = new ListAction(allowedFilter).ApplyFilter(repo.Provinces(), queryParams);
+
         return (provinces.Count(), provinces.Select(p => new
         {
             p.Id,
