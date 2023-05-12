@@ -6,9 +6,9 @@ namespace Simulation.ListAction;
 
 public class ListAction
 {
-    private List<AllowedFilterProperty>? AllowedFilterProperties { get; }
+    private List<AllowedPropertiesFilter>? AllowedFilterProperties { get; }
 
-    public ListAction(List<AllowedFilterProperty>? allowedFilterProperties)
+    public ListAction(List<AllowedPropertiesFilter>? allowedFilterProperties)
     {
         AllowedFilterProperties = allowedFilterProperties;
     }

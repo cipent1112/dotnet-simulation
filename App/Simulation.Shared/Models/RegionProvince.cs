@@ -16,6 +16,6 @@ public class RegionProvince
     public string   Status     { get; set; } = null!;
     public DateTime CreatedAt  { get; set; }
 
-    public Region   Region   { get; set; }
-    public Province Province { get; set; }
+    public Region   Region   { get; set; } = null!;
+    public Province Province { get; set; } = null!;
 }

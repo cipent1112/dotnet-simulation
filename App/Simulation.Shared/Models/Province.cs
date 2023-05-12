@@ -14,7 +14,7 @@ public class Province
     public string Name   { get; set; } = null!;
     public string Status { get; set; } = null!;
 
-    public virtual ICollection<ProvinceAssignment> ProvinceAssignments { get; set; }
-    public virtual ICollection<Regency>            Regencies           { get; set; }
-    public virtual ICollection<RegionProvince>     RegionProvinces     { get; set; }
+    public virtual ICollection<ProvinceAssignment> ProvinceAssignments { get; set; } = null!;
+    public virtual ICollection<Regency>            Regencies           { get; set; } = null!;
+    public virtual ICollection<RegionProvince>     RegionProvinces     { get; set; } = null!;
 }

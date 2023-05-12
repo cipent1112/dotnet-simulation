@@ -1,6 +1,6 @@
 namespace Simulation.ListAction;
 
-public class AllowedFilterProperty
+public class AllowedPropertiesFilter
 {
     public string    Key                { get; set; } = null!;
     public string[]? RelationProperties { get; set; }

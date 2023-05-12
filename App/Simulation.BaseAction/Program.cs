@@ -4,10 +4,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Simulation.BaseAction.Actions;
+using Simulation.BaseAction.Filters;
 using Simulation.Shared;
 using Simulation.Shared.Models;
 
-namespace Simulation.ListAction;
+namespace Simulation.BaseAction;
 
 internal static class Program
 {
@@ -69,7 +71,7 @@ internal static class Program
         return Task.CompletedTask;
     }
 
-    private static List<PropertiesFilter> BuildFilters(string filtersPayloadBase64)
+    private static List<QueryParam> BuildFilters(string filtersPayloadBase64)
     {
         var filtersString = Encoding.UTF8.GetString(Convert.FromBase64String(filtersPayloadBase64));
         var filtersObj    = JsonConvert.DeserializeObject<Dictionary<string, object>>(filtersString);
@@ -81,7 +83,7 @@ internal static class Program
 
         return (from filter in filtersObj!
             let values = ((JArray)filter.Value).ToObject<List<object>>()
-            select new PropertiesFilter
+            select new QueryParam
             {
                 Field    = filter.Key,
                 Operator = values![0].ToString()!,
@@ -89,96 +91,16 @@ internal static class Program
             }).ToList();
     }
 
-    private static (int count, object) BuildDistricts(IRepository repo, List<PropertiesFilter> filters)
-    {
-        Console.ForegroundColor = ConsoleColor.Magenta;
-        Console.WriteLine("Start to load district list...");
-        Console.ResetColor();
-
-        var districts = repo.Districts();
-        var allowedFilterProperty = new List<AllowedPropertiesFilter>
-        {
-            new()
-            {
-                Key                = "RegencyName",
-                RelationProperties = new[] { nameof(Regency) },
-                FilterProperty     = nameof(Regency.Name)
-            }
-        };
-
-        districts = new ListAction(allowedFilterProperty).ApplyFilter(districts, filters);
-        return (districts.Count(), districts.Select(s => new
-        {
-            s.Id,
-            s.Name,
-            RegencyName  = s.Regency.Name,
-            ProvinceName = s.Regency.Province.Name,
-            RegionProvince = s.Regency.Province.RegionProvinces.Select(_ => new
-            {
-                RegionName   = _.Region.Name,
-                ProvinceName = _.Province.Name,
-                _.RegionId,
-                _.ProvinceId
-            })
-        }).ToList());
-    }
-
-    private static (int count, object) BuildRegencies(IRepository repo, List<PropertiesFilter> filters)
-    {
-        Console.ForegroundColor = ConsoleColor.Magenta;
-        Console.WriteLine("Start to load regency list...");
-        Console.ResetColor();
-
-        var regencies = repo.Regencies();
-        var allowedFilterProperty = new List<AllowedPropertiesFilter>
-        {
-            new()
-            {
-                Key = "VillageName",
-                RelationProperties = new[]
-                {
-                    nameof(Province),
-                    nameof(Province.RegionProvinces),
-                    nameof(RegionProvince.Region)
-                },
-                FilterProperty = nameof(Region.Name)
-            }
-        };
-
-        regencies = new ListAction(allowedFilterProperty).ApplyFilter(regencies, filters);
-        return (regencies.Count(), regencies.Select(r => new
-        {
-            r.Id,
-            r.Name,
-            ProvinceName = r.Province.Name,
-            RegionProvinces = r.Province.RegionProvinces
-                .Select(rp => new { RegionName = rp.Region.Name })
-                .FirstOrDefault()
-        }).ToList());
-    }
-
-    private static (int count, object) BuildProvinces(IRepository repo, List<PropertiesFilter> filters)
+    private static (int count, object) BuildProvinces(IRepository repo, List<QueryParam> queryParams)
     {
         Console.ForegroundColor = ConsoleColor.Magenta;
         Console.WriteLine("Start to load province list...");
         Console.ResetColor();
 
         var provinces = repo.Provinces();
-        var allowedFilterProperty = new List<AllowedPropertiesFilter>
-        {
-            new()
-            {
-                Key = "RegionName",
-                RelationProperties = new[]
-                {
-                    nameof(Province.RegionProvinces),
-                    nameof(Region)
-                },
-                FilterProperty = nameof(Region.Name)
-            }
-        };
 
-        provinces = new ListAction(allowedFilterProperty).ApplyFilter(provinces, filters);
+        var data = new ListAction<Province>(provinces).ApplyFilter(queryParams);
+        
         return (provinces.Count(), provinces.Select(p => new
         {
             p.Id,
