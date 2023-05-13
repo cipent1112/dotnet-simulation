@@ -1,5 +1,6 @@
 using System.Linq.Dynamic.Core;
 using System.Reflection;
+using Newtonsoft.Json;
 using Simulation.BaseAction.Constants;
 using Simulation.BaseAction.Filters;
 
@@ -48,8 +49,12 @@ public class ListAction
             }
 
             var condition = BuildCondition(relationTypes, relations, formattedFilters);
-            
-            query = query.Where(condition, filterValues);
+
+
+            if (filterValues.Count <= 0) continue;
+
+            query = query.Where(condition, filterValues.ToDynamicArray());
+            Console.WriteLine($"FILTER VALUES: {JsonConvert.SerializeObject(filterValues.ToDynamicArray())}");
         }
 
         return query;
@@ -60,33 +65,36 @@ public class ListAction
     {
         return propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(ICollection<>) ? 2 : 1;
     }
-    
+
     private static List<int> GetRelationTypes<TEntity>(IReadOnlyList<string>? relations)
     {
         if (relations == null) return new List<int> { 0 };
-    
+
         var parentClass   = typeof(TEntity);
         var relationTypes = new List<int>();
-    
+
         var           previousClass = parentClass;
         PropertyInfo? propertyInfo;
-    
+
         foreach (var relation in relations)
         {
             propertyInfo = previousClass.GetProperty(relation);
             if (propertyInfo == null) continue;
-    
+
             var relationType = GetRelationType(propertyInfo.PropertyType);
-    
+
             relationTypes.Add(relationType);
-            previousClass = relationType == 2 ? propertyInfo.PropertyType.GetGenericArguments()[0] : propertyInfo.PropertyType;
+            previousClass = relationType == 2
+                ? propertyInfo.PropertyType.GetGenericArguments()[0]
+                : propertyInfo.PropertyType;
         }
-    
-    
+
+
         return relationTypes;
     }
 
-    private static string BuildCondition(IReadOnlyList<int> relationTypes, List<string>? relations, List<string[]> filters)
+    private static string BuildCondition(IReadOnlyList<int> relationTypes, List<string>? relations,
+        List<string[]> filters)
     {
         var filterConditions = string.Empty;
 

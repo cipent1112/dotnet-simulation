@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Linq.Dynamic.Core;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -102,11 +103,15 @@ internal static class Program
         {
             new()
             {
-                Relations = new List<string> { nameof(Province.Regencies), nameof(Regency.Districts), nameof(District.Villages) },
+                Relations = new List<string>
+                    { nameof(Province.Regencies), nameof(Regency.Districts), nameof(District.Villages) },
                 Filters = new List<Filter>
                 {
                     new() { Property = nameof(Village.Name) },
-                    new() { Property = nameof(Village.Status), FilterOperand = Operand.LikeOperator, FilterValue = "Active" },
+                    new()
+                    {
+                        Property = nameof(Village.Status), FilterOperand = Operand.LikeOperator, FilterValue = "Active"
+                    },
                     new() { Property = nameof(Village.PostalCode), FilterKey = "VillagePostalCode" }
                 }
             },
@@ -128,6 +133,13 @@ internal static class Program
         };
 
         var provinces = new ListAction(allowedFilter).ApplyFilter(repo.Provinces(), queryParams);
+
+        /* Manual (Testing) */
+        // var provinces = repo.Provinces();
+        // provinces = provinces.Where(
+        //     "Regencies.Any(Districts.Any(Villages.Any(  Status.Contains(@0) && PostalCode = @1)))",
+        //     "Active", "asd"
+        // );
 
         return (provinces.Count(), provinces.Select(p => new
         {

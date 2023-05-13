@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Linq.Dynamic.Core;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -175,10 +176,28 @@ internal static class Program
                     nameof(Region)
                 },
                 FilterProperty = nameof(Region.Name)
+            },
+            new()
+            {
+                Key = "VillagePostalCode",
+                RelationProperties = new[]
+                {
+                    nameof(Province.Regencies),
+                    nameof(Regency.Districts),
+                    nameof(District.Villages)
+                },
+                FilterProperty = nameof(Village.PostalCode)
             }
         };
 
-        provinces = new ListAction(allowedFilterProperty).ApplyFilter(provinces, filters);
+        // provinces = new ListAction(allowedFilterProperty).ApplyFilter(provinces, filters);
+
+        /* Hardcode */
+        provinces = provinces.Where(
+            "Regencies.Any(Districts.Any(Villages.Any(Status.Contains(@0) && PostalCode = @1)))",
+            "Active", "65144"
+        );
+
         return (provinces.Count(), provinces.Select(p => new
         {
             p.Id,
