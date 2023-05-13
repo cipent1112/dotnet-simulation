@@ -116,6 +116,14 @@ internal static class Program
                 {
                     new() { Property = nameof(Province.Name), FilterKey = "ProvinceName" }
                 }
+            },
+            new()
+            {
+                Relations = new List<string> { nameof(Province.Regencies), nameof(Regency.Districts) },
+                Filters = new List<Filter>
+                {
+                    new() { Property = nameof(District.Name), FilterKey = "DistrictName" }
+                }
             }
         };
 
