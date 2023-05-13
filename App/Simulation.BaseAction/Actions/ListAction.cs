@@ -1,6 +1,8 @@
+using System.Collections;
 using System.Linq.Dynamic.Core;
 using System.Reflection;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Simulation.BaseAction.Constants;
 using Simulation.BaseAction.Filters;
 
@@ -33,28 +35,45 @@ public class ListAction
             var relations = allowedFilter.Relations;
             var filters   = allowedFilter.Filters;
 
-            var filterValues     = new List<string>();
+            var filterValues     = new List<object>();
             var formattedFilters = new List<string[]>();
 
             var relationTypes = GetRelationTypes<T>(relations);
 
             foreach (var filter in filters)
             {
+
                 var filterValue = filter.GetFilterValue(queryParams);
+                var filterOperand = filter.GetFilterOperand(queryParams);
+                Console.WriteLine(filterValue);
 
                 if (filterValue == null) continue;
 
-                filterValues.Add(filterValue);
-                formattedFilters.Add(new[] { filter.Conjunction, filter.Property, filter.FilterOperand, filterValue });
-            }
+                if (filterOperand == Operand.BetweenOperator)
+                {
+                    foreach (var singleFilterValue in (IEnumerable)filterValue)
+                    {
+                        object objectValue = singleFilterValue;
+                        filterValues.Add(objectValue);
+                    
+                    }
+                }
+                else
+                {
+                    filterValues.Add(filterValue);
+                }
 
-            var condition = BuildCondition(relationTypes, relations, formattedFilters);
+                formattedFilters.Add(new[] { filter.Conjunction, filter.Property, filterOperand });
+            }
 
 
             if (filterValues.Count <= 0) continue;
 
-            query = query.Where(condition, filterValues.ToDynamicArray());
+            Console.WriteLine(filterValues.Count);
             Console.WriteLine($"FILTER VALUES: {JsonConvert.SerializeObject(filterValues.ToDynamicArray())}");
+        
+            var condition = BuildCondition(relationTypes, relations, formattedFilters);
+            query = query.Where(string.Format(condition), filterValues.ToDynamicArray());
         }
 
         return query;
@@ -101,8 +120,8 @@ public class ListAction
         var index = 0;
         foreach (var filter in filters)
         {
-            var conjunction = index == 0 ? String.Empty : filter[0];
-            filterConditions += $" {conjunction} " + BuildPropertyCondition(filter[1], filter[2], ref index);
+            var conjunction = index == 0 ? String.Empty : $" {filter[0]} ";
+            filterConditions += conjunction + BuildPropertyCondition(filter[1], filter[2], ref index);
         }
 
         if (relations?.Count > 0)

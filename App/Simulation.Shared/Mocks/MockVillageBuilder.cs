@@ -22,6 +22,12 @@ public class MockVillageBuilder
         _village.PostalCode = postalCode;
         return this;
     }
+    
+    public MockVillageBuilder WithPopulation(int population)
+    {
+        _village.Population = population;
+        return this;
+    }
 
     public MockVillageBuilder WithStatus(string status = Regency.StatusActive)
     {

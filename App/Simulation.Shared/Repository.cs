@@ -83,14 +83,14 @@ public class Repository : IRepository
         _db.Regency.AddRange(r1, r2);
         _db.District.AddRange(d1, d2, d3, d4);
         _db.Village.AddRange(
-            new MockVillageBuilder(d1).WithName("Pleburan").WithPostalCode("50164").WithStatus().Build(),
-            new MockVillageBuilder(d1).WithName("Pandean Lamper").WithPostalCode("50161").WithStatus().Build(),
-            new MockVillageBuilder(d2).WithName("Candisari").WithPostalCode("50253").WithStatus().Build(),
-            new MockVillageBuilder(d2).WithName("Sumurboto").WithPostalCode("50272").WithStatus().Build(),
-            new MockVillageBuilder(d3).WithName("Pasar Kliwon").WithPostalCode("57131").WithStatus().Build(),
-            new MockVillageBuilder(d3).WithName("Keprabon").WithPostalCode("57142").WithStatus().Build(),
-            new MockVillageBuilder(d4).WithName("Jebres").WithPostalCode("57121").WithStatus().Build(),
-            new MockVillageBuilder(d4).WithName("Manahan").WithPostalCode("57139").WithStatus().Build()
+            new MockVillageBuilder(d1).WithName("Pleburan").WithPostalCode("50164").WithPopulation(1000).WithStatus().Build(),
+            new MockVillageBuilder(d1).WithName("Pandean Lamper").WithPostalCode("50161").WithPopulation(2000).WithStatus().Build(),
+            new MockVillageBuilder(d2).WithName("Candisari").WithPostalCode("50253").WithPopulation(3000).WithStatus().Build(),
+            new MockVillageBuilder(d2).WithName("Sumurboto").WithPostalCode("50272").WithPopulation(4000).WithStatus().Build(),
+            new MockVillageBuilder(d3).WithName("Pasar Kliwon").WithPostalCode("57131").WithPopulation(5000).WithStatus().Build(),
+            new MockVillageBuilder(d3).WithName("Keprabon").WithPostalCode("57142").WithPopulation(6000).WithStatus().Build(),
+            new MockVillageBuilder(d4).WithName("Jebres").WithPostalCode("57121").WithPopulation(7000).WithStatus().Build(),
+            new MockVillageBuilder(d4).WithName("Manahan").WithPostalCode("57139").WithPopulation(8000).WithStatus().Build()
         );
         _db.SaveChanges();
     }

@@ -38,7 +38,7 @@ internal static class Program
                 try
                 {
                     var filters = BuildFilters(filtersPayloadBase64!);
-                    var (count, result) = BuildProvinces(repo, filters);
+                    var (count, result) = BuildDistrict(repo, filters);
 
                     Console.ForegroundColor = ConsoleColor.DarkGreen;
                     Console.WriteLine();
@@ -148,6 +148,59 @@ internal static class Program
             RegionName = p.RegionProvinces
                 .Select(rp => new { RegionName = rp.Region.Name })
                 .FirstOrDefault()
+        }).ToList());
+    }
+    
+    private static (int count, object) BuildDistrict(IRepository repo, List<QueryParam> queryParams)
+    {
+        Console.ForegroundColor = ConsoleColor.Magenta;
+        Console.WriteLine("Start to load district list...");
+        Console.ResetColor();
+
+        var allowedFilter = new List<AllowedFilter>
+        {
+           new()
+           {
+               Relations = new List<string>{nameof(District.Regency), nameof(Regency.Province)},
+               Filters = new List<Filter>
+               {
+                   new (){
+                       Property = nameof(Province.Name),
+                       FilterKey = "ProvinceName"
+                   }
+               }
+           },
+           new()
+           {
+               Relations = new List<string>{nameof(District.Villages)},
+               Filters = new List<Filter>
+               {
+                   new (){
+                       Property  = nameof(Village.PostalCode),
+                       FilterKey = "PostalCode"
+                   },
+                   new (){
+                       Property  = nameof(Village.Population),
+                       FilterKey = "Population"
+                   }
+               }
+           }
+           
+        };
+
+        var districts = new ListAction(allowedFilter).ApplyFilter(repo.Districts(), queryParams);
+
+        /* Manual (Testing) */
+        // var provinces = repo.Provinces();
+        // provinces = provinces.Where(
+        //     "Regencies.Any(Districts.Any(Villages.Any(  Status.Contains(@0) && PostalCode = @1)))",
+        //     "Active", "asd"
+        // );
+
+        return (districts.Count(), districts.Select(p => new
+        {
+            p.Id,
+            p.Name,
         }).ToList());
     }
 }
