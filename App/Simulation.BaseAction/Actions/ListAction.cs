@@ -44,7 +44,6 @@ public class ListAction
             {
                 var filterValue   = filter.GetFilterValue(queryParams);
                 var filterOperand = filter.GetFilterOperand(queryParams);
-                Console.WriteLine(filterValue);
 
                 if (filterValue == null) continue;
 
@@ -62,7 +61,6 @@ public class ListAction
 
             if (filterValues.Count <= 0) continue;
 
-            Console.WriteLine(filterValues.Count);
             Console.WriteLine($"FILTER VALUES: {JsonConvert.SerializeObject(filterValues.ToDynamicArray())}");
 
             var condition = BuildCondition(relationTypes, relations, formattedFilters);

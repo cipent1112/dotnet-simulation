@@ -17,7 +17,6 @@ public class Filter
 
         if (requestedValue is JArray)
         {
-            Console.WriteLine("Is JArray");
             var jArray = (JArray)requestedValue;
             object[] objectArray = jArray.ToObject<object[]>()!;
 
