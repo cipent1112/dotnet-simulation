@@ -42,8 +42,7 @@ public class ListAction
 
             foreach (var filter in filters)
             {
-
-                var filterValue = filter.GetFilterValue(queryParams);
+                var filterValue   = filter.GetFilterValue(queryParams);
                 var filterOperand = filter.GetFilterOperand(queryParams);
                 Console.WriteLine(filterValue);
 
@@ -51,12 +50,7 @@ public class ListAction
 
                 if (filterOperand == Operand.BetweenOperator)
                 {
-                    foreach (var singleFilterValue in (IEnumerable)filterValue)
-                    {
-                        object objectValue = singleFilterValue;
-                        filterValues.Add(objectValue);
-                    
-                    }
+                    filterValues.AddRange(((IEnumerable)filterValue).Cast<object?>()!);
                 }
                 else
                 {
@@ -66,12 +60,11 @@ public class ListAction
                 formattedFilters.Add(new[] { filter.Conjunction, filter.Property, filterOperand });
             }
 
-
             if (filterValues.Count <= 0) continue;
 
             Console.WriteLine(filterValues.Count);
             Console.WriteLine($"FILTER VALUES: {JsonConvert.SerializeObject(filterValues.ToDynamicArray())}");
-        
+
             var condition = BuildCondition(relationTypes, relations, formattedFilters);
             query = query.Where(string.Format(condition), filterValues.ToDynamicArray());
         }

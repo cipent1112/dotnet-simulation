@@ -19,7 +19,7 @@ public class Filter
         {
             Console.WriteLine("Is JArray");
             var jArray = (JArray)requestedValue;
-            object[] objectArray = jArray.ToObject<object[]>();
+            object[] objectArray = jArray.ToObject<object[]>()!;
 
             requestedValue = objectArray;
         }
