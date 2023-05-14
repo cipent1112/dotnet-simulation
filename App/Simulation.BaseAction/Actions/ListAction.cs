@@ -1,8 +1,6 @@
 using System.Collections;
 using System.Linq.Dynamic.Core;
-using System.Reflection;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Simulation.BaseAction.Constants;
 using Simulation.BaseAction.Filters;
 
@@ -15,7 +13,7 @@ public class ListAction
         AllowedFilters = allowedFilters ?? null;
     }
 
-    public List<AllowedFilter>? AllowedFilters { get; set; }
+    private List<AllowedFilter>? AllowedFilters { get; set; }
 
     public IQueryable<T> ApplyFilter<T>(IQueryable<T> queryable, List<QueryParam> queryParams)
     {
@@ -24,14 +22,7 @@ public class ListAction
 
         if (allowedFilters == null) return query;
 
-        var operands = typeof(QueryParam)
-            .GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
-            .Where(field => field.FieldType == typeof(string) && field.IsLiteral && !field.IsInitOnly)
-            .Select(field => field.GetValue(null)?.ToString())
-            .ToArray();
-
-        foreach (var allowedFilter in allowedFilters)
-        {
+        foreach (var allowedFilter in allowedFilters) {
             var relations = allowedFilter.Relations;
             var filters   = allowedFilter.Filters;
 
@@ -40,21 +31,18 @@ public class ListAction
 
             var relationTypes = GetRelationTypes<T>(relations);
 
-            foreach (var filter in filters)
-            {
-                var filterValue   = filter.GetFilterValue(queryParams);
-                var filterOperand = filter.GetFilterOperand(queryParams);
+            foreach (var filter in filters) {
+                var filterQueryParam = queryParams.FirstOrDefault(_ => _.Field == filter.FilterKey);
+                if (filterQueryParam == null) continue;
+
+                var filterValue   = filter.GetFilterValue(filterQueryParam);
+                var filterOperand = Filter.GetFilterOperand(filterQueryParam);
 
                 if (filterValue == null) continue;
 
                 if (filterOperand == Operand.BetweenOperator)
-                {
                     filterValues.AddRange(((IEnumerable)filterValue).Cast<object?>()!);
-                }
-                else
-                {
-                    filterValues.Add(filterValue);
-                }
+                else filterValues.Add(filterValue);
 
                 formattedFilters.Add(new[] { filter.Conjunction, filter.Property, filterOperand });
             }
@@ -82,13 +70,10 @@ public class ListAction
 
         var parentClass   = typeof(TEntity);
         var relationTypes = new List<int>();
+        var previousClass = parentClass;
 
-        var           previousClass = parentClass;
-        PropertyInfo? propertyInfo;
-
-        foreach (var relation in relations)
-        {
-            propertyInfo = previousClass.GetProperty(relation);
+        foreach (var relation in relations) {
+            var propertyInfo = previousClass.GetProperty(relation);
             if (propertyInfo == null) continue;
 
             var relationType = GetRelationType(propertyInfo.PropertyType);
@@ -103,22 +88,19 @@ public class ListAction
         return relationTypes;
     }
 
-    private static string BuildCondition(IReadOnlyList<int> relationTypes, List<string>? relations,
+    private static string BuildCondition(IReadOnlyList<int> relationTypes, IReadOnlyList<string>? relations,
         List<string[]> filters)
     {
         var filterConditions = string.Empty;
 
         var index = 0;
-        foreach (var filter in filters)
-        {
-            var conjunction = index == 0 ? String.Empty : $" {filter[0]} ";
+        foreach (var filter in filters) {
+            var conjunction = index == 0 ? string.Empty : $" {filter[0]} ";
             filterConditions += conjunction + BuildPropertyCondition(filter[1], filter[2], ref index);
         }
 
-        if (relations?.Count > 0)
-        {
-            for (var iC = relationTypes.Count - 1; iC >= 0; iC--)
-            {
+        if (relations?.Count > 0) {
+            for (var iC = relationTypes.Count - 1; iC >= 0; iC--) {
                 filterConditions = relationTypes[iC] == 2
                     ? $"{relations[iC]}.Any({filterConditions})"
                     : $"{relations[iC]}.{filterConditions}";
@@ -139,13 +121,9 @@ public class ListAction
                 Operand.EqualOperator, Operand.NotEqualOperator,
                 Operand.LessThanOperator, Operand.LessThanEqualOperator,
                 Operand.GreaterThanOperator, Operand.GreaterThanEqualOperator
-            }.Contains(operand))
-        {
-            return $"{property} {operand} @{currentIndex}";
-        }
+            }.Contains(operand)) return $"{property} {operand} @{currentIndex}";
 
-        switch (operand)
-        {
+        switch (operand) {
             case Operand.LikeOperator:
                 return $"{property}.Contains(@{currentIndex})";
             case Operand.NotLikeOperator:

@@ -1,5 +1,5 @@
-using System.Collections;
 using Newtonsoft.Json.Linq;
+using Simulation.BaseAction.Constants;
 
 namespace Simulation.BaseAction.Filters;
 
@@ -11,25 +11,19 @@ public class Filter
     public string? FilterValue   { get; set; }
     public string? FilterKey     { get; set; }
 
-    public object? GetFilterValue(List<QueryParam> queryParams)
+    public object? GetFilterValue(QueryParam filterQueryParam)
     {
-        var requestedValue = queryParams.FirstOrDefault(_ => _.Field == FilterKey)?.Value;
+        var requestedValue                                  = filterQueryParam.Value;
+        if (requestedValue is JArray jArray) requestedValue = jArray.ToObject<object[]>()!;
 
-        if (requestedValue is JArray)
-        {
-            var jArray = (JArray)requestedValue;
-            object[] objectArray = jArray.ToObject<object[]>()!;
-
-            requestedValue = objectArray;
-        }
-        
         if (FilterKey != null) return requestedValue;
         return FilterValue ?? null;
     }
-    
-    public string GetFilterOperand(List<QueryParam> queryParams)
+
+    public static string GetFilterOperand(QueryParam filterQueryParam)
     {
-        var queryOperator = queryParams.FirstOrDefault(_ => _.Field == FilterKey);
-        return queryOperator != null ? queryOperator.Operator : FilterOperand;
+        if (!Operand.List.Contains(filterQueryParam.Operator))
+            throw new Exception($"Invalid filter operand {filterQueryParam.Operator}");
+        return filterQueryParam.Operator;
     }
 }
